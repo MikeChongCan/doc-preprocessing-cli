@@ -10,7 +10,7 @@ Detect documents in photos, apply perspective correction, and compress to target
 ## Prerequisites
 
 ```bash
-brew install imWildCat/tap/doc-crop
+brew install MikeChongCan/tap/doc-crop
 ```
 
 This taps and installs in one command. Requires macOS 13+ (uses Vision framework).

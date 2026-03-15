@@ -15,10 +15,10 @@ A macOS CLI that detects, crops, and compresses document images using Apple Visi
 ### Homebrew (recommended)
 
 ```bash
-brew install imWildCat/tap/doc-crop
+brew install MikeChongCan/tap/doc-crop
 ```
 
-The full path `imWildCat/tap/doc-crop` taps and installs in one command — no separate `brew tap` needed.
+The full path `MikeChongCan/tap/doc-crop` taps and installs in one command — no separate `brew tap` needed.
 
 ### Build from source
 
