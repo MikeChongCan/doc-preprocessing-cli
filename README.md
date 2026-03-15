@@ -10,18 +10,22 @@ A macOS CLI that detects, crops, and compresses document images using Apple Visi
 - **Multiple formats** — WebP, JPEG, and PNG output
 - **Zero dependencies** — pure Swift, uses only Apple frameworks (Vision, CoreImage, AppKit)
 
-## Requirements
+## Install
 
-- macOS 13+ (Ventura or later)
-- Swift 5.9+
+### Homebrew (recommended)
 
-## Build
+```bash
+brew install imWildCat/tap/doc-crop
+```
+
+### Build from source
+
+Requires macOS 13+ (Ventura or later) and Swift 5.9+.
 
 ```bash
 swift build -c release
+# binary at .build/release/doc-crop
 ```
-
-The binary will be at `.build/release/doc-crop`.
 
 ## Usage
 
@@ -56,6 +60,10 @@ doc-crop scan.png output.jpg --no-perspective
 2. **Correct** — CIPerspectiveCorrection straightens the detected quadrilateral (with 3% padding to avoid clipping edges)
 3. **Compress** — Encodes to the target format, iteratively lowering quality until the file fits under `--max-size`
 4. **Fallback** — If no document is detected, trims 5% margins as a conservative crop
+
+## Agent Skill
+
+This repo includes an [AgentSkill](https://awesomeskills.dev) at `skills/doc-crop/SKILL.md` for use with Claude Code, Codex, and other AI coding agents.
 
 ## License
 

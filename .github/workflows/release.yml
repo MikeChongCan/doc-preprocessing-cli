@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build universal binary
+        run: |
+          swift build -c release --arch arm64 --arch x86_64
+          cp .build/apple/Products/Release/doc-crop doc-crop
+          chmod +x doc-crop
+          tar czf doc-crop-macos-universal.tar.gz doc-crop
+
+      - name: Get version
+        id: version
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Compute SHA256
+        id: sha
+        run: echo "sha256=$(shasum -a 256 doc-crop-macos-universal.tar.gz | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body: |
+            ## doc-crop ${{ steps.version.outputs.tag }}
+
+            macOS universal binary (arm64 + x86_64).
+
+            ### Install via Homebrew
+            ```bash
+            brew install imWildCat/tap/doc-crop
+            ```
+
+            ### SHA256
+            ```
+            ${{ steps.sha.outputs.sha256 }}
+            ```
+          files: doc-crop-macos-universal.tar.gz
+          draft: false
+          prerelease: false
