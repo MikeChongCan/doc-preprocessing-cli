@@ -13,7 +13,7 @@ Detect documents in photos, apply perspective correction, and compress to target
 brew install imWildCat/tap/doc-crop
 ```
 
-Requires macOS 13+ (uses Vision framework).
+This taps and installs in one command. Requires macOS 13+ (uses Vision framework).
 
 ## Usage
 

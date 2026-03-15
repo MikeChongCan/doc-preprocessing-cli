@@ -18,6 +18,8 @@ A macOS CLI that detects, crops, and compresses document images using Apple Visi
 brew install imWildCat/tap/doc-crop
 ```
 
+The full path `imWildCat/tap/doc-crop` taps and installs in one command — no separate `brew tap` needed.
+
 ### Build from source
 
 Requires macOS 13+ (Ventura or later) and Swift 5.9+.
