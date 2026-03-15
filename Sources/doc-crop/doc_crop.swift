@@ -3,6 +3,7 @@ import Vision
 import CoreImage
 import AppKit
 import UniformTypeIdentifiers
+import WebP
 
 // MARK: - CLI Argument Parsing
 
@@ -171,63 +172,49 @@ func cgImageFrom(ciImage: CIImage) -> CGImage? {
 }
 
 func encodeWebP(cgImage: CGImage, quality: Float) -> Data? {
-    // Try native CGImageDestination first
-    let data = NSMutableData()
-    if let dest = CGImageDestinationCreateWithData(
-        data as CFMutableData,
-        UTType.webP.identifier as CFString,
-        1,
-        nil
-    ) {
-        let options: [CFString: Any] = [
-            kCGImageDestinationLossyCompressionQuality: quality
-        ]
-        CGImageDestinationAddImage(dest, cgImage, options as CFDictionary)
-        if CGImageDestinationFinalize(dest) {
-            return data as Data
-        }
-    }
+    // Use Swift-WebP (libwebp) for reliable WebP encoding on all macOS versions
+    let width = cgImage.width
+    let height = cgImage.height
+    let stride = width * 4
 
-    // Fallback: save temp JPEG, convert via cwebp CLI
-    fputs("Native WebP encoding unavailable, using cwebp fallback\n", stderr)
-    let tempJPEG = NSTemporaryDirectory() + "doc-crop-temp-\(ProcessInfo.processInfo.processIdentifier).jpg"
-    let tempWebP = NSTemporaryDirectory() + "doc-crop-temp-\(ProcessInfo.processInfo.processIdentifier).webp"
-
-    let rep = NSBitmapImageRep(cgImage: cgImage)
-    guard let jpegData = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.95]) else {
+    // Render CGImage into RGBA pixel buffer
+    guard let colorSpace = cgImage.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB) else {
         return nil
     }
-
-    do {
-        try jpegData.write(to: URL(fileURLWithPath: tempJPEG))
-    } catch {
+    var pixelData = [UInt8](repeating: 0, count: height * stride)
+    guard let context = CGContext(
+        data: &pixelData,
+        width: width,
+        height: height,
+        bitsPerComponent: 8,
+        bytesPerRow: stride,
+        space: colorSpace,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else {
+        fputs("Failed to create bitmap context for WebP encoding\n", stderr)
         return nil
     }
-
-    let qualityInt = Int(quality * 100)
-    let task = Process()
-    task.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/cwebp")
-    task.arguments = ["-q", "\(qualityInt)", tempJPEG, "-o", tempWebP]
-    task.standardOutput = FileHandle.nullDevice
-    task.standardError = FileHandle.nullDevice
+    context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
 
     do {
-        try task.run()
-        task.waitUntilExit()
-
-        if task.terminationStatus == 0 {
-            let webpData = try Data(contentsOf: URL(fileURLWithPath: tempWebP))
-            try? FileManager.default.removeItem(atPath: tempJPEG)
-            try? FileManager.default.removeItem(atPath: tempWebP)
-            return webpData
+        let encoder = WebPEncoder()
+        let qualityPercent = quality * 100
+        let config = WebPEncoderConfig.preset(.photo, quality: qualityPercent)
+        let data = try pixelData.withUnsafeBufferPointer { buffer in
+            try encoder.encode(
+                buffer,
+                format: .rgba,
+                config: config,
+                originWidth: Int(width),
+                originHeight: Int(height),
+                stride: stride
+            )
         }
+        return data
     } catch {
-        fputs("cwebp fallback failed: \(error.localizedDescription)\n", stderr)
+        fputs("WebP encoding failed: \(error.localizedDescription)\n", stderr)
+        return nil
     }
-
-    try? FileManager.default.removeItem(atPath: tempJPEG)
-    try? FileManager.default.removeItem(atPath: tempWebP)
-    return nil
 }
 
 func encodeJPEG(cgImage: CGImage, quality: Float) -> Data? {
